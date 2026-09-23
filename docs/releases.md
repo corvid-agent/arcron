@@ -17,6 +17,36 @@ at stake if it is wrong?**
 
 The labels are ordinary. The gates are not, so they are written down.
 
+## The path to MainNet (decided 2026-09-23)
+
+**This section governs.** The beta and rc gates below describe a longer
+path, about ninety days at minimum, and are kept as the record of what was
+considered; they are not what stands between this contract and MainNet. The
+owner chose the shorter path `docs/status.md` describes, and made it
+concrete. MainNet happens when all four of these hold, and not on a date:
+
+1. **Every finding a MainNet create would make permanent is closed.** Not
+   every open finding: the missing MainNet entry in `js/src/networks.ts` is a
+   finding, and closing it publishes the app.
+2. **Three independent model reviewers each score readiness at 90 or more,
+   with no open blocker.** Fresh reviews, given [the review
+   brief](review-brief.md) and nothing else; which models is chosen when the
+   round is run.
+3. **Thirty days of the dogfood serviced on unchanged bytecode**, as
+   `fledge run clock -- --gate` measures it. Any contract change restarts it.
+   A stall caused by an account nobody refilled is recorded and does **not**
+   restart it: that is an operator lapse, not evidence about the contract,
+   and the answer is to refill.
+4. **Alpha tasks [#92](../../issues/92), [#93](../../issues/93) and
+   [#94](../../issues/94) answered.** A fresh agent with no access to this
+   repository counts as the outside party for each.
+
+Then the deploy itself: from **`corvid.algo`**, the creator
+[`deploying.md`](deploying.md) already names, with the operational checklist
+under [mainnet](#mainnet) below, the app id unpublished, and **frozen
+promptly** after create. An upkeep we did not register appearing before the
+freeze is a reason to freeze at once.
+
 ## What a version *is* here
 
 Not a semver. A deployment's identity is **the compiled bytecode and the app
@@ -65,6 +95,8 @@ somebody else's front end, whatever it looks like.
 
 ## beta: other people may rely on it
 
+*Not a MainNet gate since 2026-09-23; see [the path to MainNet](#the-path-to-mainnet-decided-2026-09-23).*
+
 **The step that matters**, because it is where a struct change stops being
 free. From here on, a change means a new app id and every creator cancelling
 and re-registering by hand.
@@ -102,6 +134,8 @@ neglected upkeep's fee escalates. That is the whole mechanism.
 
 ## rc: the candidate
 
+*Not a MainNet gate since 2026-09-23; see [the path to MainNet](#the-path-to-mainnet-decided-2026-09-23). Its freeze decision is made: MainNet is frozen promptly.*
+
 **Meaning:** this exact bytecode is what we intend to put on MainNet. Not a
 rewrite of it; this.
 
@@ -125,10 +159,11 @@ clock can be argued down is not a gate.
 
 ## mainnet
 
-**Gate:**
+**Gate:** the four conditions in [the path to MainNet](#the-path-to-mainnet-decided-2026-09-23), then:
 
-- [ ] The rc bytecode, unchanged, hash recorded and published
-- [ ] A **fresh deployer**, never used on TestNet, its key handling documented
+- [ ] The bytecode that served the thirty days, unchanged, hash recorded and published
+- [ ] Created from **`corvid.algo`**, never from the TestNet `DEPLOYER` ([`deploying.md`](deploying.md) has why one account and not a multisig)
+- [ ] **Frozen promptly** after create, before the app id is published anywhere
 - [ ] The app account funded for its base minimum balance
 - [ ] `verify_build` run against the MainNet app id, output published
 - [ ] The unaudited-risk disclosure prominent wherever anyone can find it
@@ -180,8 +215,9 @@ funded runs. A missed `rain` draw should be dropped, not replayed in a burst.
 draw's one ticket. It resolves an open draw against the real beacon, claims
 whatever it wins, and redeposits the exact amount straight back into the
 pot; see the module's own docstring for what circulates (the prize) and
-what does not (transaction fees). `.github/workflows/rain-bot.yml` runs it
-every 30 minutes, the same cron-stopgap shape as `keeper-bot.yml`.
+what does not (transaction fees). A GitHub workflow ran it every 30 minutes,
+the same cron-stopgap shape as `keeper-bot.yml`, until the hub made it a no-op;
+the workflow was retired on 2026-09-23.
 
 **Proven end to end, live, on 2026-08-26.** `scripts.rain_testnet_deploy
 --bootstrap-draw` opened draw 1 manually (any account may call `draw`; this

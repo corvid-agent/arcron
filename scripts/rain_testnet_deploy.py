@@ -5,11 +5,17 @@ rain gated to the TestNet Corvid minter, and registers one Arcron upkeep on
 `draw()uint64` at an hourly cadence (each rain still enforces its own
 interval). Idempotent: already-done steps are skipped.
 
+The keeper registry is `--keeper-app-id`, else `KEEPER_APP_ID`, else the live
+TestNet keeper when the network is TestNet. Any other network has to name
+one: a keeper id means nothing off the chain it was created on.
+
 Run:  poetry run python -m scripts.rain_testnet_deploy --network testnet
+      poetry run python -m scripts.rain_testnet_deploy --network localnet --keeper-app-id N
 """
 
 import argparse
 import logging
+import os
 
 import algokit_utils
 
@@ -31,7 +37,7 @@ logger = logging.getLogger(__name__)
 
 CORVID_TESTNET_MINTER = "WGSHC4TYKYBS6EX5V5E377BQDLKWIIPBCFOLZQZIXCKHFIEKRPBFOMW25A"
 DRAW_SIGNATURE = "draw()uint64"
-KEEPER_APP_ID = 769891898
+TESTNET_KEEPER_APP_ID = 769891898
 DAILY_ROUNDS = 30_857
 HOURLY_ROUNDS = 1_286
 DRIP_MICROALGO = 50_000
@@ -55,13 +61,42 @@ def _payment(algorand, sender: str, receiver: str, amount: int):
     )
 
 
+def resolve_keeper_app_id(
+    parser: argparse.ArgumentParser, keeper_app_id: int | None, network: str
+) -> int:
+    """The keeper registry to register on: the flag, the env, or TestNet's.
+
+    Mirrors `keeper_bot.resolve_app_id`, down to the env var, with one
+    difference: rain's dogfood upkeep lives on the live TestNet keeper, so
+    TestNet alone keeps a default rather than refusing.
+    """
+    if keeper_app_id is not None:
+        return keeper_app_id
+    from_env = os.environ.get("KEEPER_APP_ID")
+    if from_env:
+        return int(from_env)
+    if network == net.TESTNET:
+        return TESTNET_KEEPER_APP_ID
+    parser.error(
+        f"--keeper-app-id (or KEEPER_APP_ID) is required on {network}: the "
+        f"default {TESTNET_KEEPER_APP_ID} is a TestNet app"
+    )
+
+
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
     net.add_network_argument(parser)
     parser.add_argument("--app-id", type=int, default=None, help="wrap an existing hub")
+    parser.add_argument(
+        "--keeper-app-id",
+        type=int,
+        default=None,
+        help=f"keeper registry (default: KEEPER_APP_ID, else {TESTNET_KEEPER_APP_ID} on testnet)",
+    )
     args = parser.parse_args(argv)
+    keeper_app_id = resolve_keeper_app_id(parser, args.keeper_app_id, args.network)
 
     algorand = net.connect(args.network)
     deployer = algorand.account.from_environment("DEPLOYER")
@@ -122,7 +157,7 @@ def main(argv: list[str] | None = None) -> None:
     logger.info("── Upkeep ──")
     keeper = KeeperClient(
         algorand=algorand,
-        app_id=KEEPER_APP_ID,
+        app_id=keeper_app_id,
         default_sender=deployer.address,
         default_signer=deployer.signer,
     )

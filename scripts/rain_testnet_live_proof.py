@@ -4,8 +4,9 @@ Funds the Corvid daily/GM rains, enters them with a TestNet Corvid NFT,
 opens short-interval ONE (ALGO) and SPLIT (ASA) rains, calls `draw`, claims.
 Prints explorer links. Does not print mnemonics.
 
-Tops the rain deployer up from the grok-4.6 agent account when spendable
-ALGO is too low to cover boxes, pots, and fees.
+Tops the rain deployer up from a funder account when spendable ALGO is too
+low to cover boxes, pots, and fees. The funder's mnemonic is read from the
+file named by --funder-env or RAIN_FUNDER_ENV, never from a fixed path.
 
 Run:  poetry run python -m scripts.rain_testnet_live_proof --network testnet
 """
