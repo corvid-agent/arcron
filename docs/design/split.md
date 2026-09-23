@@ -29,7 +29,7 @@ Would hold `smart_contracts/subscription/` plus `examples/`. **Recommendation: d
 | `specs/rain/rain.spec.md` | Plus `.specsync/config.toml` copied verbatim |
 
 ### Tests
-`tests/test_rain.py` (41), `tests/test_rain_bot.py` (14), `tests/test_rain_one_draw.py` (7). All three import only rain modules; `test_rain.py`'s one keeper mention is a comment.
+`tests/test_rain.py` (41), `tests/test_rain_bot.py` (14), `tests/test_rain_one_draw.py` (7), `tests/test_rain_testnet_deploy.py` (5, added 2026-09-23 with step 0.5). All four import only rain modules; `test_rain.py`'s one keeper mention is a comment.
 
 ### Scripts (1,650 lines)
 `scripts/rain_bot.py`, `rain_demo.py`, `community_rain_demo.py`, `rain_one_draw.py`, `rain_testnet_deploy.py`, `rain_testnet_live_proof.py`.
@@ -91,9 +91,9 @@ Each is an ordinary PR; ci green throughout.
 1. ~~**Owner ratifies D1–D11** (§6).~~ **Done 2026-09-23.** D2–D5 were decided on 2026-08-31 and D1, D6–D11 on 2026-09-23, each as recommended in §6.
 2. **Cancel upkeep 79.** It holds 7.7 ALGO of arcron escrow and still pays keepers to call `draw()` on superseded rain app `770029154` every 2,571 rounds — 11 executions in a recent 24 hours (`docs/status.md:52-62`). Do not export that into a new public repo.
 3. ~~**Fix the stale app ids.**~~ **Done 2026-08-31** (both now name the hub, and both superseded rain ids are in `SUPERSEDED`); the workflow itself was retired on 2026-09-23. As originally written: `.github/workflows/rain-bot.yml:46` defaults to `769988156` and `deploy/rain.env.example:11` sets `RAIN_APP_ID=769988156` — both the *earlier* superseded app, while the workflow's own header comment claims it points at the hub. Neither id is in `tests/test_app_id_consistency.py`'s `SUPERSEDED` set, so nothing catches it on either side of the split.
-4. **Remove the home-directory secret.** `scripts/rain_testnet_live_proof.py:61` is `AGENT_ENV = Path.home() / ".grok/secrets/agents/grok-4.6.env"`, read at `:111-114` for `DEPLOYER_MNEMONIC`. Replace with `--funder-env` / an env var. This is a public-release blocker, not move-time cleanup.
-5. **Parameterise the keeper app id.** `scripts/rain_testnet_deploy.py:34` hardcodes `KEEPER_APP_ID = 769891898`. Make it `--keeper-app-id` / `ARCRON_KEEPER_APP_ID`, the way `rain_bot.py:204` already does for `RAIN_APP_ID`.
-6. **Ship an `abandon` client.** `smart_contracts/rain/contract.py:427-441` declares `abandon`, `js/src/rain-abi.ts:21` declares the signature, and *nothing anywhere builds the transaction*. `rain_bot.py:249-250` says its own resolve/abandon paths are dead scans. On an immutable hub, `_fire_one` returns 0 while `prize_locked > 0` (`contract.py:607-610`), so a single unresolved ONE draw past the 800-round `SEED_WINDOW` stalls that rain permanently and only `abandon` frees it. Add it to `rain-txns.ts` and the console before any cutover. Today nothing on earth can unlock a stalled draw.
+4. ~~**Remove the home-directory secret.**~~ **Done 2026-08-30** (#224): the funder file now comes from `--funder-env` or `RAIN_FUNDER_ENV`. The old path is still in git history; it names a file, not its contents, but read it before D10 makes the history public. As originally written: `scripts/rain_testnet_live_proof.py:61` is `AGENT_ENV = Path.home() / ".grok/secrets/agents/grok-4.6.env"`, read at `:111-114` for `DEPLOYER_MNEMONIC`. Replace with `--funder-env` / an env var. This is a public-release blocker, not move-time cleanup.
+5. ~~**Parameterise the keeper app id.**~~ **Done 2026-09-23.** `scripts/rain_testnet_deploy.py` takes `--keeper-app-id`, else `KEEPER_APP_ID` (the env var `keeper_bot` and `keeper_daemon` already read, rather than the `ARCRON_KEEPER_APP_ID` first proposed here), else `769891898` on TestNet only; any other network must name one. As originally written: `scripts/rain_testnet_deploy.py:34` hardcodes `KEEPER_APP_ID = 769891898`.
+6. ~~**Ship an `abandon` client.**~~ **Done 2026-08-30** (#230): `abandon` is built in `js/src/rain-txns.ts` and offered on the console's rain detail page. As originally written: `smart_contracts/rain/contract.py:427-441` declares `abandon`, `js/src/rain-abi.ts:21` declares the signature, and *nothing anywhere builds the transaction*. `rain_bot.py:249-250` says its own resolve/abandon paths are dead scans. On an immutable hub, `_fire_one` returns 0 while `prize_locked > 0` (`contract.py:607-610`), so a single unresolved ONE draw past the 800-round `SEED_WINDOW` stalls that rain permanently and only `abandon` frees it. Add it to `rain-txns.ts` and the console before any cutover. Today nothing on earth can unlock a stalled draw.
 
 ### Phase 1 — stand the new repo up (arcron untouched)
 
@@ -125,7 +125,7 @@ Each is an ordinary PR; ci green throughout.
 
 12. **Commit C: the contract, scripts and harness cut.**
     - `git rm -r smart_contracts/rain/ smart_contracts/artifacts/rain/ specs/rain/` — **delete the artifacts directory explicitly.** `smart_contracts/__main__.py:89-93` only clears the output dir of a contract it *discovered*, so removing the source leaves the artifact untouched and `ci.yml:145-150`'s `git diff --quiet -- smart_contracts/artifacts` stays green over a stale spec. That is a false gate, which is worse than a red build.
-    - Delete the six scripts, `tests/test_rain.py`, `test_rain_bot.py`, `test_rain_one_draw.py`, `deploy/rain-bot.service`, `deploy/rain.env.example`.
+    - Delete the six scripts, `tests/test_rain.py`, `test_rain_bot.py`, `test_rain_one_draw.py`, `test_rain_testnet_deploy.py`, `deploy/rain-bot.service`, `deploy/rain.env.example`.
     - `fledge.toml`: delete tasks `smoke-rain` (:139), `smoke-community-rain` (:140), `rain-one-draw` (:148) and the two lane entries in `[lanes.local]` (23 steps → 21). `[lanes.ci]` and `[lanes.endurance]` name no rain task and are untouched.
     - `.github/workflows/ci.yml:229`: edit `for task in build smoke-keeper smoke-rain` by hand. It is the one hand-written task list in CI; the build job at `:141` reads the lane out of `fledge.toml` and needs nothing.
     - `scripts/verify_build.py:40`: `CONTRACTS = ("keeper", "pulse")`. This also narrows `--contract` on `scripts/mainnet_clock.py:153`.
