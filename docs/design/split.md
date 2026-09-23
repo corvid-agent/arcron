@@ -41,7 +41,7 @@ Would hold `smart_contracts/subscription/` plus `examples/`. **Recommendation: d
 `web/src/app/pages/rain-page.ts`, `rain-detail-page.ts`, `rain-create-page.ts` (+ their `.test.ts`), `web/src/app/components/rain-create-form.ts`, `rain-stat-tiles.ts`, `web/src/app/core/rain.service.ts`, `nft-media.ts`, `nft-media.test.ts`, `prize-units.test.ts`, `web/e2e/rain.pw.ts`, the two `SCENARIOS` at `web/e2e/matrix.ts:64-65`, the `RAIN_APP_ID` stub in `web/e2e/chain.ts:28-34,46-47,235,261-307`, and `web/public/brand/corvid-0001.png` (which must **not** be re-filed under `brand/` — it is a sample NFT image sitting inside a vendored design-system directory that gets overwritten by `sync-to.sh`).
 
 ### Ops
-`.github/workflows/rain-bot.yml`, `deploy/rain-bot.service`, `deploy/rain.env.example`, the `RAIN_MNEMONIC` secret.
+`deploy/rain-bot.service`, `deploy/rain.env.example`, the `RAIN_MNEMONIC` secret. (`.github/workflows/rain-bot.yml` was retired from arcron on 2026-09-23 rather than moved: it had been a manual no-op scan since 2026-08-30. `arcron-rain` can write its own if the hub ever needs an automated resolver.)
 
 ### Docs
 `examples/rain.md`, `examples/community-rain.md`, `docs/testnet.md:18-21,97-174`, `docs/releases.md:155-263`, `docs/status.md:39-98` (rain half) and `:118`, `docs/journeys.md:249-256`.
@@ -88,9 +88,9 @@ Would hold `smart_contracts/subscription/` plus `examples/`. **Recommendation: d
 ### Phase 0 — pre-flight, in arcron, before anything moves
 Each is an ordinary PR; ci green throughout.
 
-1. **Owner ratifies D1–D11** (§6). Nothing below is safe to start until D3 (the console) is answered in writing.
+1. ~~**Owner ratifies D1–D11** (§6).~~ **Done 2026-09-23.** D2–D5 were decided on 2026-08-31 and D1, D6–D11 on 2026-09-23, each as recommended in §6.
 2. **Cancel upkeep 79.** It holds 7.7 ALGO of arcron escrow and still pays keepers to call `draw()` on superseded rain app `770029154` every 2,571 rounds — 11 executions in a recent 24 hours (`docs/status.md:52-62`). Do not export that into a new public repo.
-3. **Fix the stale app ids.** `.github/workflows/rain-bot.yml:46` defaults to `769988156` and `deploy/rain.env.example:11` sets `RAIN_APP_ID=769988156` — both the *earlier* superseded app, while the workflow's own header comment claims it points at the hub. Neither id is in `tests/test_app_id_consistency.py`'s `SUPERSEDED` set, so nothing catches it on either side of the split.
+3. ~~**Fix the stale app ids.**~~ **Done 2026-08-31** (both now name the hub, and both superseded rain ids are in `SUPERSEDED`); the workflow itself was retired on 2026-09-23. As originally written: `.github/workflows/rain-bot.yml:46` defaults to `769988156` and `deploy/rain.env.example:11` sets `RAIN_APP_ID=769988156` — both the *earlier* superseded app, while the workflow's own header comment claims it points at the hub. Neither id is in `tests/test_app_id_consistency.py`'s `SUPERSEDED` set, so nothing catches it on either side of the split.
 4. **Remove the home-directory secret.** `scripts/rain_testnet_live_proof.py:61` is `AGENT_ENV = Path.home() / ".grok/secrets/agents/grok-4.6.env"`, read at `:111-114` for `DEPLOYER_MNEMONIC`. Replace with `--funder-env` / an env var. This is a public-release blocker, not move-time cleanup.
 5. **Parameterise the keeper app id.** `scripts/rain_testnet_deploy.py:34` hardcodes `KEEPER_APP_ID = 769891898`. Make it `--keeper-app-id` / `ARCRON_KEEPER_APP_ID`, the way `rain_bot.py:204` already does for `RAIN_APP_ID`.
 6. **Ship an `abandon` client.** `smart_contracts/rain/contract.py:427-441` declares `abandon`, `js/src/rain-abi.ts:21` declares the signature, and *nothing anywhere builds the transaction*. `rain_bot.py:249-250` says its own resolve/abandon paths are dead scans. On an immutable hub, `_fire_one` returns 0 while `prize_locked > 0` (`contract.py:607-610`), so a single unresolved ONE draw past the 800-round `SEED_WINDOW` stalls that rain permanently and only `abandon` frees it. Add it to `rain-txns.ts` and the console before any cutover. Today nothing on earth can unlock a stalled draw.
@@ -125,11 +125,11 @@ Each is an ordinary PR; ci green throughout.
 
 12. **Commit C: the contract, scripts and harness cut.**
     - `git rm -r smart_contracts/rain/ smart_contracts/artifacts/rain/ specs/rain/` — **delete the artifacts directory explicitly.** `smart_contracts/__main__.py:89-93` only clears the output dir of a contract it *discovered*, so removing the source leaves the artifact untouched and `ci.yml:145-150`'s `git diff --quiet -- smart_contracts/artifacts` stays green over a stale spec. That is a false gate, which is worse than a red build.
-    - Delete the six scripts, `tests/test_rain.py`, `test_rain_bot.py`, `test_rain_one_draw.py`, `.github/workflows/rain-bot.yml`, `deploy/rain-bot.service`, `deploy/rain.env.example`.
+    - Delete the six scripts, `tests/test_rain.py`, `test_rain_bot.py`, `test_rain_one_draw.py`, `deploy/rain-bot.service`, `deploy/rain.env.example`.
     - `fledge.toml`: delete tasks `smoke-rain` (:139), `smoke-community-rain` (:140), `rain-one-draw` (:148) and the two lane entries in `[lanes.local]` (23 steps → 21). `[lanes.ci]` and `[lanes.endurance]` name no rain task and are untouched.
     - `.github/workflows/ci.yml:229`: edit `for task in build smoke-keeper smoke-rain` by hand. It is the one hand-written task list in CI; the build job at `:141` reads the lane out of `fledge.toml` and needs nothing.
     - `scripts/verify_build.py:40`: `CONTRACTS = ("keeper", "pulse")`. This also narrows `--contract` on `scripts/mainnet_clock.py:153`.
-    - Re-base the two floors that would otherwise stop guarding: `tests/test_specs_match_contracts.py:79` (`>= 5`; 7 contracts → 6, so it survives with one of margin — re-base to 6 anyway) and `tests/test_workflow_permissions.py:81` (`>= 3`; 4 workflows → 3, exactly on the floor).
+    - Re-base the two floors that would otherwise stop guarding: `tests/test_specs_match_contracts.py:79` (`>= 5`; 7 contracts → 6, so it survives with one of margin — re-base to 6 anyway) and `tests/test_workflow_permissions.py:95` (`>= 3`; already 4 workflows since `rain-bot.yml` was retired on 2026-09-23, and Commit C removes none, so it keeps one of margin).
 
 ### Phase 3 — settle
 
@@ -165,8 +165,8 @@ Each is an ordinary PR; ci green throughout.
 
 ## 6. Owner decisions
 
-**D1 — How many new repos, and what are they called?**
-*Recommendation:* one, `CorvidLabs/arcron-rain`. The `arcron-` prefix, because rain hardcodes `keeperAppId 769891898` and a bare name hides that.
+**D1 — How many new repos, and what are they called? (decided 2026-09-23: one, `arcron-rain`)**
+*Recommendation, ratified as written:* one, `CorvidLabs/arcron-rain`. The `arcron-` prefix, because rain hardcodes `keeperAppId 769891898` and a bare name hides that.
 
 **D2 — Does `subscription` move too? (decided 2026-08-31: no)**
 Settled by measurement rather than taste. The owner's criterion was not tidiness, it was that PRs against these contracts "distract from the stability of the project" -- a change under `smart_contracts/` reads as *the keeper network changed*. Commits per contract directory, at the time of the split:
@@ -225,23 +225,23 @@ The plan's counter-argument -- that `docs/design/1.0.md:92-99` chose rain becaus
 
 The registry is the dogfood now. One rain we run ourselves was always the weaker evidence; it was the only evidence available at the time. `1.0.md` should be rewritten to gate on sustained TestNet time across the live registry, naming rain as the thing that got us here rather than as a dependency -- and that removes a gate that would otherwise stall on an outage in a repository arcron does not control.
 
-**D6 — Who owns byte-for-byte verification of the immutable hub?**
-*Recommendation:* fork `verify_build.py` into `arcron-rain` (it imports only `scripts.network`) as a prerequisite of step 9, and drop `"rain"` from arcron's tuple in Commit C.
+**D6 — Who owns byte-for-byte verification of the immutable hub? (decided 2026-09-23: `arcron-rain`)**
+*Recommendation, ratified as written:* fork `verify_build.py` into `arcron-rain` (it imports only `scripts.network`) as a prerequisite of step 9, and drop `"rain"` from arcron's tuple in Commit C.
 
-**D7 — Packaging: publish `@corvidlabs/arcron` and a Python package first, or vendor?**
-*Recommendation:* vendor for the first cut. **Amended 2026-08-31:** the package is published, as `1.0.0-alpha.3` on GitHub Packages under the `alpha` dist-tag, by `.github/workflows/publish-js.yml`. The sentence this decision used to rest on — "there is nothing published to break" — is no longer true and is removed. The recommendation survives its own justification, for three reasons that are still true. Installing from GitHub Packages requires an auth token even for a public package, so "vendor" and "install" are closer in cost here than they would be against npmjs.org. The package still ships raw TypeScript (`"main": "./src/index.ts"`, `tsconfig` is `noEmit`) and resolves outside a bundler nowhere, though `arcron-rain` is an Angular/Bun repo and would not care. And `pyproject.toml:7` still sets `package-mode = false`, so the Python half has to be vendored regardless. What the publish *does* change is the cost of Commit A: `./rain`, `./rain-abi` and `./rain-txns` are now a published surface, 69 of 134 root exports. Because the published version is a prerelease, removing them is not a major bump — the first stable `1.0.0` is simply published keeper-only, and `^1.0.0-alpha.3` already admits it. That is the whole reason a prerelease number was chosen over `1.0.0`. Copy ~65 TS lines and ~5 Python helpers, accept the drift, and keep publishing a stable version as follow-up work rather than a gate in front of the split. (`docs/console-plan.md:437-448` records this hazard already biting once, fixed with `prebundle.exclude` in `web/angular.json:76-80`.)
+**D7 — Packaging: publish `@corvidlabs/arcron` and a Python package first, or vendor? (decided 2026-09-23: vendor)**
+*Recommendation, ratified as written:* vendor for the first cut. **Amended 2026-08-31:** the package is published, as `1.0.0-alpha.3` on GitHub Packages under the `alpha` dist-tag, by `.github/workflows/publish-js.yml`. The sentence this decision used to rest on — "there is nothing published to break" — is no longer true and is removed. The recommendation survives its own justification, for three reasons that are still true. Installing from GitHub Packages requires an auth token even for a public package, so "vendor" and "install" are closer in cost here than they would be against npmjs.org. The package still ships raw TypeScript (`"main": "./src/index.ts"`, `tsconfig` is `noEmit`) and resolves outside a bundler nowhere, though `arcron-rain` is an Angular/Bun repo and would not care. And `pyproject.toml:7` still sets `package-mode = false`, so the Python half has to be vendored regardless. What the publish *does* change is the cost of Commit A: `./rain`, `./rain-abi` and `./rain-txns` are now a published surface, 69 of 134 root exports. Because the published version is a prerelease, removing them is not a major bump — the first stable `1.0.0` is simply published keeper-only, and `^1.0.0-alpha.3` already admits it. That is the whole reason a prerelease number was chosen over `1.0.0`. Copy ~65 TS lines and ~5 Python helpers, accept the drift, and keep publishing a stable version as follow-up work rather than a gate in front of the split. (`docs/console-plan.md:437-448` records this hazard already biting once, fixed with `prebundle.exclude` in `web/angular.json:76-80`.)
 
-**D8 — Where does `FOUNDATION_BEACON` live?**
-*Recommendation:* stays in arcron with the beacon-id table at `docs/arcron.md:707-715`; the rain repo links to it. It has no code consumer after the split, but `tests/test_multisig.py:295-329` reads it, and that test was deliberately re-pointed off `specs/rain/rain.spec.md` onto deployed approval programs on 2026-08-29 *precisely so rain's churn could not break it*. Moving it means deleting the test and the table in the same commit.
+**D8 — Where does `FOUNDATION_BEACON` live? (decided 2026-09-23: stays in arcron)**
+*Recommendation, ratified as written:* stays in arcron with the beacon-id table at `docs/arcron.md:707-715`; the rain repo links to it. It has no code consumer after the split, but `tests/test_multisig.py:295-329` reads it, and that test was deliberately re-pointed off `specs/rain/rain.spec.md` onto deployed approval programs on 2026-08-29 *precisely so rain's churn could not break it*. Moving it means deleting the test and the table in the same commit.
 
-**D9 — Does `arcron-rain` write the missing spec files?**
-`specs/rain/` is one file where `specs/keeper/` and `specs/pulse/` are five. Copying `.specsync/config.toml` verbatim gives the appearance of the same strict gate without the substance. *Recommendation:* write `requirements.md`, `tasks.md`, `testing.md` as part of step 7 — the rain repo is the one that goes public with a live money-holding contract.
+**D9 — Does `arcron-rain` write the missing spec files? (decided 2026-09-23: yes, in step 7)**
+`specs/rain/` is one file where `specs/keeper/` and `specs/pulse/` are five. Copying `.specsync/config.toml` verbatim gives the appearance of the same strict gate without the substance. *Recommendation, ratified as written:* write `requirements.md`, `tasks.md`, `testing.md` as part of step 7 — the rain repo is the one that goes public with a live money-holding contract.
 
-**D10 — Is `arcron-rain` public from day one?**
-*Recommendation:* private until steps 0.4 (the home-directory mnemonic path) and 0.6 (the `abandon` client) have landed. Then public.
+**D10 — Is `arcron-rain` public from day one? (decided 2026-09-23: no, private until 0.4 and 0.6)**
+*Recommendation, ratified as written:* private until steps 0.4 (the home-directory mnemonic path) and 0.6 (the `abandon` client) have landed. Then public.
 
-**D11 — Do the arcron rain routes become redirects or deletions?**
-*Recommendation:* redirects for 30 days, then deleted. It keeps live links working, keeps `test_publish_console.py:114` green, and costs three tiny components.
+**D11 — Do the arcron rain routes become redirects or deletions? (decided 2026-09-23: redirects for 30 days)**
+*Recommendation, ratified as written:* redirects for 30 days, then deleted. It keeps live links working, keeps `test_publish_console.py:114` green, and costs three tiny components.
 
 ---
 

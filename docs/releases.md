@@ -180,8 +180,9 @@ funded runs. A missed `rain` draw should be dropped, not replayed in a burst.
 draw's one ticket. It resolves an open draw against the real beacon, claims
 whatever it wins, and redeposits the exact amount straight back into the
 pot; see the module's own docstring for what circulates (the prize) and
-what does not (transaction fees). `.github/workflows/rain-bot.yml` runs it
-every 30 minutes, the same cron-stopgap shape as `keeper-bot.yml`.
+what does not (transaction fees). A GitHub workflow ran it every 30 minutes,
+the same cron-stopgap shape as `keeper-bot.yml`, until the hub made it a no-op;
+the workflow was retired on 2026-09-23.
 
 **Proven end to end, live, on 2026-08-26.** `scripts.rain_testnet_deploy
 --bootstrap-draw` opened draw 1 manually (any account may call `draw`; this

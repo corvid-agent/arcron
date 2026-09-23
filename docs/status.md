@@ -88,9 +88,9 @@ that the LocalNet stub could not show, is in
   exercises a rain end to end.
 - `.github/workflows/keeper-bot.yml` still runs execution on a cron, a stopgap
   that names a long-running host as the real fix in its own header.
-  `.github/workflows/rain-bot.yml` still runs on the same cadence but no
-  longer resolves, claims or deposits: the hub gave those back to holders, and
-  the job should be retired or repointed rather than left logging.
+  The rain-bot workflow that ran beside it was retired on 2026-09-23: the hub
+  gave resolve, claim and deposit back to holders, so it had been a manual scan
+  that changed nothing since 2026-08-30.
 
 This is the mechanism [`docs/design/1.0.md`](design/1.0.md) describes: a
 recurring draw whose absence would actually be noticed, replacing the
