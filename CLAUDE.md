@@ -66,8 +66,12 @@ because these are easy to get wrong from memory:
 - **Dogfood** is a recurring `rain` draw on TestNet, serviced by a keeper we
   run and watched by the notifier, with `pulse` as the heartbeat target for
   the uptime clock.
-- **MainNet gate** is self-review plus sustained TestNet time. No paid audit.
-  Any struct change restarts that clock.
+- **MainNet gate** (decided 2026-09-23, defined in `docs/releases.md`): create-
+  permanent findings closed, three model reviewers each at 90+ with no open
+  blocker, 30 days of the dogfood serviced on unchanged bytecode, and alpha
+  tasks #92-94 answered (a fresh agent counts). No paid audit, no beta/rc
+  clocks. Any contract change restarts the 30 days; a stall from an unfunded
+  account does not. Created from `corvid.algo` and frozen promptly.
 - **Public release** waits until the deployment is one we are not about to
   replace; the licence and docs (#50) land before visibility does.
 

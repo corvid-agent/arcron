@@ -1,6 +1,6 @@
 # Where Arcron stands
 
-Last updated 2026-08-30. This page is the one place to look if you want to
+Last updated 2026-09-23. This page is the one place to look if you want to
 know what exists, what state it is in, and what happens next. If it disagrees
 with anything else in this repo, this page is probably the stale one: check
 [the release table](releases.md), which is generated against live app ids.
@@ -59,6 +59,17 @@ keepers are still paid to call `draw()` on `770029154` every 2,571 rounds;
 11 of those executions landed in the preceding 24 hours. Nothing is stuck
 (`cancel` refunds escrow and box MBR in full), but every one of those calls
 is escrow spent exercising an app this page says is superseded.
+
+**Decided 2026-09-23: cancel 79, and upkeeps 98 to 109 with it.** Those twelve
+run every 20 rounds, so thirty days of runway would cost 192 ALGO each, and
+`fledge run topup` already refuses to fund them. Preview first; only
+`--commit` signs, and it cancels only upkeeps `DEPLOYER` created:
+
+```
+poetry run python -m scripts.reclaim --network testnet --app-id 769891898 \
+  --upkeep 79 --upkeep 98 --upkeep 99 --upkeep 100 --upkeep 101 --upkeep 102 \
+  --upkeep 103 --upkeep 104 --upkeep 105 --upkeep 106 --upkeep 107 --upkeep 108 --upkeep 109
+```
 
 Upkeep 79 had itself replaced upkeep 77, which was registered against a
 selector `rain` does not have and so could never have executed: every attempt
@@ -178,20 +189,25 @@ Those are what the alpha tasks below exist to answer.
 
 ## What happens next
 
-The stages and what each one freezes are in [releases.md](releases.md). In
-order:
+The priority is MainNet readiness; the rain split ([`design/split.md`](design/split.md))
+is paused with its decisions recorded. MainNet is gated on four things, on
+no date, and [releases.md](releases.md#the-path-to-mainnet-decided-2026-09-23)
+is where they are defined:
 
-1. **Close every finding that a MainNet create would make permanent**, and
-   reach a consensus of about 90 to 95 percent confidence across independent
-   reviewers. Not every open finding: an earlier version of this page said
-   that, and it contradicted the line below, because one of the open findings
-   is "the console has no MainNet entry" and closing that publishes the path
-   to the app.
-2. Run the dogfood upkeep unattended, with the notifier watching. This is the
-   only evidence that accrues while nobody is looking.
-3. Answer the three unknowns above through the alpha tasks.
-4. MainNet, deployed from `corvid.algo` and frozen promptly, with the app id unpublished
-   until it is frozen.
+1. **Close every finding that a MainNet create would make permanent.** Not
+   every open finding, because one of them is "the console has no MainNet
+   entry" and closing that publishes the path to the app.
+2. **Three independent model reviewers each at 90 or more**, no open blocker.
+   That is what "90 to 95 percent" below means in practice.
+3. **Thirty days of the dogfood serviced on unchanged bytecode.** A stall from
+   an account nobody refilled is recorded and does not restart the clock; a
+   contract change does. Known gap: after 2026-08-30 the TestNet accounts were
+   not refilled, so the record from then until they are will show it.
+4. **Answer the three unknowns above** through the alpha tasks. A fresh agent
+   with no access to this repository counts as the outside party.
+
+Then MainNet: created from `corvid.algo`, frozen promptly, with the app id
+unpublished until it is frozen.
 
 ### Why 90 to 95 and not 100
 

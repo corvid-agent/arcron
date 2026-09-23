@@ -415,8 +415,9 @@ any reason. Nothing here is a promise yet.
 
 Getting outside upkeeps registered is **alpha** work, not beta work: beta is
 the freeze, so feedback that could still change the struct has to arrive before
-it. The gates are in [`docs/releases.md`](docs/releases.md), and they
-are deliberately specific: a struct change means a new app id whether or not
+it. The gates are in [`docs/releases.md`](docs/releases.md); since 2026-09-23
+MainNet takes the shorter path it opens with, rather than a formal beta and
+rc. They are deliberately specific: a struct change means a new app id whether or not
 the programs can still be replaced, so a stage whose clock can be argued down
 is not a gate.
 
